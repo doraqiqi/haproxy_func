@@ -1,9 +1,17 @@
 # Author：zhaoyanqi
+def input_func(func):
+        while True:
+            data_input = input("输入域名，输入b返回，输入q退出:").strip()
+            if data_input == "b":
+                break
+            if data_input == "q":
+                exit()
+            else:
+                func(data_input)
 
 def search(data):
     flag = False
     data_list = []
-    token = 0
     with open("haproxy","r") as f:
         for line in f:
             #print(line)
@@ -17,8 +25,7 @@ def search(data):
         for line in data_list:
             print(line.strip())
         if data_list == []:
-            token = 1
-    return token
+            print("没有这个")
 
 def add(data):
     token = 0
@@ -29,6 +36,7 @@ def add(data):
     if token > 0:
         print("已存在")
     else:
+        #创建一个字典：
         b ={
             'backend': '',
             'record':{
@@ -110,6 +118,8 @@ def delete(data):
     else:
         print("找不到这个")
 
+
+
 if __name__ == '__main__':
 
     choice_list = ["查询", "添加", "删除", "退出"]
@@ -125,48 +135,11 @@ if __name__ == '__main__':
         for index, line in enumerate(choice_list):
             print(index + 1, line)
         choice_input = input("输入你得选择:").strip()
-        if len(choice_input) == 0 and choice_input not in choice_dic:
+        if len(choice_input) == 0 or choice_input not in choice_dic:
             print("请输入正确的选项")
             continue
-
-        if choice_input == "1":
-            while True:
-                data_input = input("输入你要查询的域名，输入b返回，输入q退出:").strip()
-                if data_input == "b":
-                    break
-                if data_input == "q":
-                    exit()
-                else:
-                    s = search(data_input)
-                if s == 1:
-                    print("没有找到")
-
-        if choice_input == "2":
-            while True:
-                data_input = input("输入你要添加的域名，输入b返回，输入q退出:").strip()
-                if len(data_input) == 0:
-                    print("不能为空")
-                    continue
-                if data_input == "b":
-                    break
-                if data_input == "q":
-                    exit()
-                else:
-                    add(data_input)
-
-        if choice_input == "3":
-            while True:
-                data_input = input("输入你要删除的域名，输入b返回，输入q退出:").strip()
-                if len(data_input) == 0:
-                    print("不能为空")
-                    continue
-                if data_input == "b":
-                    break
-                if data_input == "q":
-                    exit()
-                else:
-                    delete(data_input)
-
         if choice_input == "4":
             exit()
+        input_func(choice_dic[choice_input])
+
 
