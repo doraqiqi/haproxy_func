@@ -1,13 +1,7 @@
 # Author：zhaoyanqi
-def input_func(func):
-        while True:
-            data_input = input("输入域名，输入b返回，输入q退出:").strip()
-            if data_input == "b":
-                break
-            if data_input == "q":
-                exit()
-            else:
-                func(data_input)
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+
 
 def search(data):
     flag = False
@@ -24,99 +18,108 @@ def search(data):
                 data_list.append(line)
         for line in data_list:
             print(line.strip())
-        if data_list == []:
-            print("没有这个")
-
+        # if data_list == []:
+        #     print("没有这个")
+    return data_list
+# {'backend': 'www.bb.com','record':{'server': '10.10.10.10','weight': 20,'maxconn':3000}}
 def add(data):
-    token = 0
-    with open("haproxy","r") as f:
-        for line in f:
-            if "backend %s" %data == line.strip():
-                token += 1
-    if token > 0:
-        print("已存在")
+    backend_name = data_input["backend"]
+    data_list = search(backend_name) #搜索输入字典里的backend
+    backend_info = "backend %s" %backend_name
+    record_dic = data_input["record"]
+    record_info = "server %s weight %s maxconn %s" \
+                  %(record_dic["server"],\
+                  record_dic["weight"],\
+                  record_dic["maxconn"])
+    # print(record_info)
+    if data_list == []:#如果输入字典里的backend原本不存在，则执行添加
+        with open("haproxy","r") as file,open("haproxy_bak","w") as bak_file:
+            for line in file:
+                bak_file.write(line)#将老文件备份成haproxy_bak
+        with open("haproxy","a") as new_file:#将新内容覆盖老文件
+            new_file.write(backend_info+"\n")
+            new_file.write("\t"*2+record_info+"\n")
     else:
-        #创建一个字典：
-        b ={
-            'backend': '',
-            'record':{
-                'server': '',
-                'weight': 0,
-                'maxconn':0
-                }
-        }
-        # 修改字典内容:
-        b['backend'] = data
-        while True:
-            server_update = input("请输入server的ip：")
-            if server_update == "":
-                print("不能为空")
-            else:
-                b['record']['server'] = server_update
-                break
-        while True:
-            weight_update = input("请输入weight的值：")
-            if weight_update == "":
-                print("不能为空")
-            else:
-                if weight_update.isdigit():
-                    b['record']['weight'] = int(weight_update)
-                    break
-                else:
-                    print("请输入数字")
-                    continue
-        while True:
-            maxconn_update = input("请输入maxconn的值：")
-            if maxconn_update == "":
-                print("不能为空")
-            else:
-                if maxconn_update.isdigit():
-                    b['record']['maxconn'] = int(maxconn_update)
-                    break
-                else:
-                    print("请输入数字")
-                    continue
-        # 修改完的内容写入haproxy:
-        with open("haproxy", "a", encoding="utf-8") as f3:
-            f3.write("backend")
-            bakend_w = b.get("backend")
-            f3.write(" " + bakend_w)
-            t2 = b.get("record")
-            server_w = t2.get("server")
-            weight_w = t2.get("weight")
-            maxconn_w = t2.get("maxconn")
-            f3.write("\n" + "\t" + "\t")
-            f3.write("server" + " " + server_w + " " + "weight" + " " + str(weight_w) + " " + "maxconn" + " " + str(
-                maxconn_w) + "\n")
-            print("添加完成")
+        token = False
+        for line in data_list:#如果字典里backend原本存在
+            if  line.strip() == record_info:#检查是否存在一条数据和字典里的相同
+                token = True #存在则token为真
+        if token:
+            print("已存在")
+        else:
+            data_list.append("\t"*2+record_info+"\n")
+            # print(data_list)
+            data_list.insert(0,backend_info+"\n")#新加进去的部分写进data_list
+            # for line in data_list:
+            #     print(line)
+            with open("haproxy", "r") as file, open("haproxy_bak", "w") as bak_file:
+                for line in file:
+                    bak_file.write(line)  # 将老文件备份成haproxy_bak
+            with open("haproxy_bak","r") as old_file,open("haproxy","w") as new_file:
+                flag2 = True#设置一个打开的token
+                written = False#设置一个检验是否已经写过新data_list的标签
+                for line in old_file:
+                    # if flag2:
+                        # new_file.write(line)
+                    if line.strip() == backend_info:#当遍历到字典中的backend，把token关上
+                        flag2 = False
+                        continue
+                    if line.startswith("backend"):#添加的backend结束，把token重新打开
+                        flag2 = True
+                    if flag2:#如果tonken是打开的，那么就把这一行写进去
+                        new_file.write(line)
+                    else:#如果token是关闭的，就把新的data_list写进去
+                        if written == False:#因为不止一行flag2=false，防止多次写入新data_list，这里做一个校验
+                            for line in data_list:
+                                new_file.write(line)
+                            written = True#当written为true时，说明已经写过了，下一次就不会再写了
 
 def delete(data):
-    token = 0
-    flag = 0
-    old_haproxy = []
-    new_haproxy = []
-    with open("haproxy","r") as f:
-        for line in f:
-            old_haproxy.append(line)
-            if "backend %s" % data == line.strip():
-                #print(line)
-                flag = 1
-                token = 1#说明输入内容可以找到，可以删除
-                continue
-            if line.startswith("backend"):
-                flag = 0
-            if flag == 0:
-                new_haproxy.append(line)
-    with open("haproxy_bak","w") as f_oldHaproxy:
-        for line in old_haproxy:
-            f_oldHaproxy.write(line)
-    with open("haproxy","w") as f_newHaproxy:
-        for line in new_haproxy:
-            f_newHaproxy.write(line)
-    if token == 1:
-        print("已经删除，原文件内容备份在haproxy_bak里")
+    backend_name = data_input["backend"]
+    data_list = search(backend_name) #搜索输入字典里的backend
+    backend_info = "backend %s" %backend_name
+    record_dic = data_input["record"]
+    record_info = "server %s weight %s maxconn %s" \
+                  %(record_dic["server"],\
+                  record_dic["weight"],\
+                  record_dic["maxconn"])
+    token = False
+    for line in data_list:
+        if line.strip() == record_info:
+            token = True
+    if token:
+        data_list.remove("\t"*2+record_info+"\n")
+        data_list.insert(0, backend_info + "\n")
+        # print(data_list)
+        # for line in data_list:
+        #     print(line)
+        with open("haproxy", "r") as file, open("haproxy_bak", "w") as bak_file:
+            for line in file:
+                bak_file.write(line)  # 将老文件备份成haproxy_bak
+        with open("haproxy_bak", "r") as old_file, open("haproxy", "w") as new_file:
+            flag2 = True  # 设置一个打开的token
+            written = False  # 设置一个检验是否已经写过新data_list的标签
+            for line in old_file:
+                # if flag2:
+                # new_file.write(line)
+                if line.strip() == backend_info:  # 当遍历到字典中的backend，把token关上
+                    flag2 = False
+                    continue
+                if line.startswith("backend"):  # 添加的backend结束，把token重新打开
+                    flag2 = True
+                if flag2:  # 如果tonken是打开的，那么就把这一行写进去
+                    new_file.write(line)
+                else:  # 如果token是关闭的，就把新的data_list写进去
+                    if written == False:  # 因为不止一行flag2=false，防止多次写入新data_list，这里做一个校验
+                        for line in data_list:
+                            new_file.write(line)
+                        written = True  # 当written为true时，说明已经写过了，下一次就不会再写了
+        print("删除成功")
     else:
-        print("找不到这个")
+        print("没这个数据")
+
+
+
 
 
 
@@ -138,8 +141,15 @@ if __name__ == '__main__':
         if len(choice_input) == 0 or choice_input not in choice_dic:
             print("请输入正确的选项")
             continue
+
         if choice_input == "4":
             exit()
-        input_func(choice_dic[choice_input])
+
+        data_input = input("输入内容:")
+        if choice_input != "1":
+            data_input = eval(data_input)
+
+        choice_dic[choice_input](data_input)
+
 
 
